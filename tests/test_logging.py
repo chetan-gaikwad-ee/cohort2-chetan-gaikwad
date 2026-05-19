@@ -20,3 +20,13 @@ def test_request_log_is_emitted(caplog):
     assert record.path == "/health"
     assert record.status_code == 200
     assert hasattr(record, "duration_ms")
+
+
+def test_request_log_for_not_found(caplog):
+    with caplog.at_level(logging.INFO, logger="app.request"):
+        response = client.get("/nonexistent")
+        assert response.status_code == 404
+
+    request_logs = [r for r in caplog.records if r.message == "Request completed"]
+    assert len(request_logs) >= 1
+    assert request_logs[-1].status_code == 404
