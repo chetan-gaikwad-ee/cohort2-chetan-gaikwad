@@ -26,8 +26,27 @@ uvicorn main:app --reload
 
 The server starts at [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
+### Verify
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
 ## Test
 
 ```bash
 pytest
+```
+
+## Sample Response
+
+### `GET /health`
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-19T10:30:00.000000Z",
+  "version": "0.1.0",
+  "environment": "development"
+}
 ```
