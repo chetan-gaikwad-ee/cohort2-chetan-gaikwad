@@ -1,6 +1,38 @@
 # Test-Break-Fix Cycle: `/health` Endpoint
 
-## What was changed
+## Sample `/health` response
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-19T03:30:00.000000Z",
+  "version": "0.1.0",
+  "environment": "development"
+}
+```
+
+## Structured Log Output (Per Request)
+
+Every request processed by the application emits a structured JSON log entry via `RequestLoggingMiddleware`. Example log for a `GET /health` call:
+
+```json
+{
+  "timestamp": "2026-05-19T03:30:00.000",
+  "level": "INFO",
+  "logger": "app.request",
+  "message": "Request completed",
+  "method": "GET",
+  "path": "/health",
+  "status_code": 200,
+  "duration_ms": 1.23
+}
+```
+
+Fields logged per request: `method`, `path`, `status_code`, and `duration_ms`.
+
+## Failure Drill Report
+
+### What was changed
 
 In commit [`d5adc3d`](../../commit/d5adc3d), the health endpoint response was intentionally broken by changing the status value from `"ok"` to `"error"` in `app/routes/health.py`:
 
@@ -9,9 +41,9 @@ In commit [`d5adc3d`](../../commit/d5adc3d), the health endpoint response was in
 + status="error",
 ```
 
-## Test output screenshots
+### Test output screenshots
 
-### Failure (after the intentional break)
+#### Failure (after the intentional break)
 
 ![Failure screenshot](evidence/failure_test_screenshot.png)
 
@@ -23,24 +55,13 @@ AssertionError: assert 'error' == 'ok'
 
 `test_request_log_is_emitted` continued to pass — it only validates logging behaviour, not response content.
 
-### Fix (after reverting the change)
+#### Fix (after reverting the change)
 
 ![Tests passing](evidence/test_fixed.png)
 
 Both tests passed in 0.13s after the fix in commit [`47fb7ec`](../../commit/47fb7ec).
 
-## Sample `/health` response (after fix)
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-05-19T03:30:00.000000Z",
-  "version": "0.1.0",
-  "environment": "development"
-}
-```
-
-## Failure drill: before / after
+### Before / After
 
 | Aspect            | Before (broken)                          | After (fixed)                          |
 |-------------------|------------------------------------------|----------------------------------------|
@@ -50,6 +71,6 @@ Both tests passed in 0.13s after the fix in commit [`47fb7ec`](../../commit/47fb
 | **Failure type**  | `AssertionError: 'error' == 'ok'`        | —                                      |
 | **File modified** | `app/routes/health.py`                   | `app/routes/health.py`                 |
 
-## Reflection
+### Reflection
 
 This drill confirmed that the existing test suite catches even a single-field value change immediately — `test_health_returns_ok` pinpointed the exact mismatch (`'error' == 'ok'`) within seconds. It also showed good test isolation: the logging test was unaffected because it validates request metadata, not response content. The exercise reinforces that small, focused assertions make failures easy to diagnose — the pytest output pointed directly at the broken line, leaving no guesswork about what went wrong or how to fix it.
