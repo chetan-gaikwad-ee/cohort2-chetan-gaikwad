@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/health", response_model=HealthResponse)
 async def health():
     return HealthResponse(
-        status="error",
+        status="ok",
         timestamp=datetime.now(timezone.utc),
         version=settings.APP_VERSION,
         environment=settings.ENVIRONMENT,
