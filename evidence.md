@@ -45,7 +45,7 @@ In commit [`d5adc3d`](../../commit/d5adc3d), the health endpoint response was in
 
 #### Failure (after the intentional break)
 
-![Failure screenshot](evidence/failure_test_screenshot.png)
+![Failure screenshot](evidence/Week_1/failure_test_screenshot.png)
 
 `test_health_returns_ok` failed with:
 
@@ -57,7 +57,7 @@ AssertionError: assert 'error' == 'ok'
 
 #### Fix (after reverting the change)
 
-![Tests passing](evidence/test_fixed.png)
+![Tests passing](evidence/Week_1/test_fixed.png)
 
 Both tests passed in 0.13s after the fix in commit [`47fb7ec`](../../commit/47fb7ec).
 

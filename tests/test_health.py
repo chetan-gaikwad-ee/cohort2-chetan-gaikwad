@@ -12,7 +12,7 @@ def test_health_returns_ok():
     data = response.json()
     assert data["status"] == "ok"
     assert "timestamp" in data
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "0.1.1"
     assert data["environment"] == "development"
 
 
