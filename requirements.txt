@@ -2,5 +2,6 @@ fastapi
 uvicorn
 pydantic-settings
 python-json-logger
+flake8
 pytest
 httpx
