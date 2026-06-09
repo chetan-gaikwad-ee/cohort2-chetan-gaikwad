@@ -32,8 +32,8 @@ jobs:
 
       - name: Lint check
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv
-
+          ruff check .
+          
       - name: Run tests
         run: |
           pytest
