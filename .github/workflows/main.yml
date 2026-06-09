@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - main
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/cohort2-chetan-gaikwad
 
 jobs:
   Build-and-test:
@@ -30,38 +32,57 @@ jobs:
 
       - name: Lint check
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv
+          ruff check .
 
       - name: Run tests
         run: |
           pytest
 
-  Deploy:
+  Build-and-push:
     runs-on: ubuntu-latest
     needs: Build-and-test
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup python
-        uses: actions/setup-python@v6
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          python-version: '3.14'
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Todo: Can we skip this step?
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            
 
-      - name: Install dependencies
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: Build-and-push
+    steps:
+
+      - name: Pull image
+        run: docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Run container
         run: |
-          pip install -r requirements.txt
+          docker run -d --name app -p 8000:8000 \
+            -e ENVIRONMENT=ci \
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Start FastAPI server
+      - name: Verify /health
         run: |
-          uvicorn main:app &
           sleep 5
           curl --fail http://127.0.0.1:8000/health
-          kill $!
 
-
+      - name: Logs and cleanup
+        if: always()
+        run: |
+          docker logs app || true
+          docker rm -f app || true          
+            
