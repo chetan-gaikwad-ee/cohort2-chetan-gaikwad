@@ -38,7 +38,7 @@ jobs:
         run: |
           pytest
 
-  Deploy:
+  Build-and-push:
     runs-on: ubuntu-latest
     needs: Build-and-test
     steps:
@@ -59,5 +59,35 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            
 
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: Build-and-push
+    steps:
+      - name: Log in to Docker Hub        
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Pull image
+        run: docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Run container
+        run: |
+          docker run -d --name app -p 8000:8000 \
+            -e ENVIRONMENT=ci \
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Verify /health
+        run: |
+          sleep 5
+          curl --fail http://127.0.0.1:8000/health
+
+      - name: Logs and cleanup
+        if: always()
+        run: |
+          docker logs app || true
+          docker rm -f app || true          
+            
