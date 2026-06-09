@@ -78,7 +78,7 @@ jobs:
       - name: Verify /health
         run: |
           sleep 5
-          curl --fail http://127.0.0.1:8000/health
+          curl --fail http://127.0.0.1:8080/health
 
       - name: Logs and cleanup
         if: always()
