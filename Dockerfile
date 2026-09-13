@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Runtime config defaults — these map to app/config.py Settings.
 # Override any of them at run time with `docker run -e KEY=value`.
-ENV APP_VERSION=0.1.1 \
+ENV APP_VERSION=0.1.2 \
     ENVIRONMENT=production \
     LOG_LEVEL=INFO \
     PORT=8000
