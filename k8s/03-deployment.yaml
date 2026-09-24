@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-app
+  namespace: cohort2-nonprod
+  labels:
+    app: fastapi-app
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # at most 1 pod ABOVE replicas during a rollout
+      maxUnavailable: 0    # never drop below 2 ready pods -> zero downtime
+  selector:
+    matchLabels:
+      app: fastapi-app     # how the Deployment finds its pods. Immutable after creation.
+  template:                # everything below is the POD SPEC - the cookie cutter
+    metadata:
+      labels:
+        app: fastapi-app   # must match the selector above; the Service uses it too
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000    # REQUIRED here - see the gotcha note below
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api        # remember this name: `kubectl set image ... api=<image>`
+          # v0.1.1 - deliberately the OLD image, so Step 8 has something to roll forward from
+          image: chetangaikwadee/cohort2-chetan-gaikwad:ff40710c9db608c4842947046bcc7f831bebfa18
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:                    # inject every key from both objects as env vars
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
+          resources:
+            requests:                 # what the SCHEDULER reserves on a node
+              cpu: 50m
+              memory: 64Mi
+            limits:                   # what the KERNEL enforces at runtime
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:             # "can I take traffic?" fail -> removed from Service
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3       # out of rotation ~15s after it goes bad
+          livenessProbe:              # "am I wedged?" fail -> container RESTARTED
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3       # slower and more forgiving: the penalty is harsher
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

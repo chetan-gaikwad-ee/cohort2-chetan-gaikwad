@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cohort2-nonprod
+  labels:
+    app.kubernetes.io/part-of: cohort2-chetan-gaikwad
+    environment: nonprod
