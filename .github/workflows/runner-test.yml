@@ -1,0 +1,9 @@
+name: Runner smoke test
+on: workflow_dispatch
+
+jobs:
+  smoke:
+    runs-on: self-hosted
+    steps:
+      - run: whoami
+      - run: kubectl get nodes
