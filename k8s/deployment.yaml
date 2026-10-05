@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cohort2-api
+  namespace: cohort2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cohort2-api
+  template:
+    metadata:
+      labels:
+        app: cohort2-api
+    spec:
+      containers:
+        - name: api
+          image: chetangaikwadee/cohort2-chetan-gaikwad
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: cohort2-api-config
+            - secretRef:
+                name: cohort2-api-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

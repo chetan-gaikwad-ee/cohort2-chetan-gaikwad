@@ -62,27 +62,41 @@ jobs:
             
 
   Deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: Build-and-push
+    concurrency: deploy-cohort2
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Pull image
-        run: docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Run container
+      - name: Apply namespace and config
         run: |
-          docker run -d --name app -p 8000:8000 \
-            -e ENVIRONMENT=ci \
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+
+      - name: Roll out new image
+        run: |
+          kubectl set image deployment/cohort2-api \
+            api=${{ env.IMAGE_NAME }}:${{ github.sha }} -n cohort2
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/cohort2-api -n cohort2 --timeout=120s
 
       - name: Verify /health
         run: |
-          sleep 5
-          curl --fail http://127.0.0.1:8000/health
+          kubectl port-forward -n cohort2 svc/cohort2-api 18080:80 &
+          echo $! > pf.pid
+          sleep 3
+          curl --fail http://localhost:18080/health
 
-      - name: Logs and cleanup
+      - name: Stop port-forward
         if: always()
+        run: kill $(cat pf.pid) || true
+
+      - name: Show cluster state on failure
+        if: failure()
         run: |
-          docker logs app || true
-          docker rm -f app || true          
+          kubectl get pods -n cohort2
+          kubectl describe deployment/cohort2-api -n cohort2
+          kubectl logs deploy/cohort2-api -n cohort2 --tail=50      
             
