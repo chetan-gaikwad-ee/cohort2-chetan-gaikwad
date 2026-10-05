@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cohort2-api
+  namespace: cohort2
+spec:
+  type: ClusterIP
+  selector:
+    app: cohort2-api
+  ports:
+    - port: 80
+      targetPort: 8000
