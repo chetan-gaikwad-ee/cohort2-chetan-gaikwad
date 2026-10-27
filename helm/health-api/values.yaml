@@ -1,0 +1,39 @@
+replicaCount: 2
+
+image:
+  repository: chetangaikwadee/cohort2-chetan-gaikwad
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort: 8000
+
+service:
+  type: ClusterIP
+  port: 80
+
+config:
+  ENVIRONMENT: kubernetes
+  LOG_LEVEL: INFO
+  APP_VERSION: "0.1.2"
+
+existingSecret: cohort2-api-secret
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+  liveness:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

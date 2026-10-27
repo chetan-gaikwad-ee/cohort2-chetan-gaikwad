@@ -59,32 +59,53 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            
+              
 
+  Helm-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint chart (defaults, dev, prod)
+        run: |
+          helm lint helm/health-api --strict
+          helm lint helm/health-api --strict -f helm/health-api/values-dev.yaml
+          helm lint helm/health-api --strict -f helm/health-api/values-prod.yaml
+
+      - name: Render templates (dev and prod)
+        run: |
+          helm template health-api helm/health-api -n cohort2-dev  -f helm/health-api/values-dev.yaml
+          helm template health-api helm/health-api -n cohort2-prod -f helm/health-api/values-prod.yaml          
+            
   Deploy:
     runs-on: self-hosted
-    needs: Build-and-push
+    needs: [Build-and-push, Helm-validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency: deploy-cohort2
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Apply namespace and config
+      - name: Helm upgrade (dev)
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/configmap.yaml
+          helm upgrade --install health-api helm/health-api \
+            -n cohort2-dev \
+            -f helm/health-api/values-dev.yaml \
+            --set image.tag=${{ github.sha }} \
+            --rollback-on-failure --wait --timeout 180s
 
-      - name: Roll out new image
+      - name: Show release
         run: |
-          kubectl set image deployment/cohort2-api \
-            api=${{ env.IMAGE_NAME }}:${{ github.sha }} -n cohort2
-
-      - name: Wait for rollout
-        run: kubectl rollout status deployment/cohort2-api -n cohort2 --timeout=120s
+          helm status health-api -n cohort2-dev
+          helm history health-api -n cohort2-dev
 
       - name: Verify /health
         run: |
-          kubectl port-forward -n cohort2 svc/cohort2-api 18080:80 &
+          kubectl port-forward -n cohort2-dev svc/health-api 18080:80 &
           echo $! > pf.pid
           sleep 3
           curl --fail http://localhost:18080/health
@@ -96,7 +117,6 @@ jobs:
       - name: Show cluster state on failure
         if: failure()
         run: |
-          kubectl get pods -n cohort2
-          kubectl describe deployment/cohort2-api -n cohort2
-          kubectl logs deploy/cohort2-api -n cohort2 --tail=50      
-            
+          kubectl get pods -n cohort2-dev
+          kubectl describe deployment/health-api -n cohort2-dev
+          kubectl logs deploy/health-api -n cohort2-dev --tail=50

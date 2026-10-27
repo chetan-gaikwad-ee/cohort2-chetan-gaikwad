@@ -1,0 +1,21 @@
+replicaCount: 2
+
+image:
+  tag: "5483ecb2a89c739c362e67350eeda096637172c8"
+  pullPolicy: IfNotPresent
+
+config:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+
+probes:
+  readiness:
+    failureThreshold: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
