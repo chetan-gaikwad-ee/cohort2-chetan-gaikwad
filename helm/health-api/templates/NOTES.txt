@@ -1,0 +1,5 @@
+{{ include "health-api.fullname" . }} is deployed to namespace {{ .Release.Namespace }}.
+
+To reach it from your laptop:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "health-api.fullname" . }} 8080:{{ .Values.service.port }}
+  curl http://localhost:8080/health
